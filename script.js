@@ -104,3 +104,41 @@ function renderNoResults(query) {
   }
 }
 
+async function searchImages(query) {
+  const statusElement = document.getElementById("status");
+  const resultsContainer = document.getElementById("results");
+
+  // 1. LOADING STATE: Set before starting the fetch
+  statusElement.textContent = "Searching...";
+  resultsContainer.innerHTML = '<div class="spinner">Searching...</div>';
+
+  try {
+    const response = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=12&prop=pageimages&pithumbsize=400&format=json&origin=*`);
+
+    // Check for HTTP errors
+    if (!response.ok) {
+      throw new Error(`Server status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const items = data.query ? Object.values(data.query.pages) : [];
+
+    // Clear loading indicator
+    resultsContainer.innerHTML = "";
+
+    // 2. EMPTY STATE: Handle zero results
+    if (items.length === 0) {
+      statusElement.textContent = `No results found for "${query}". Try another word.`;
+      return;
+    }
+
+    // 3. RESULTS STATE & POLISH: Show result count
+    statusElement.textContent = `Showing ${items.length} results for "${query}"`;
+    renderResults(items);
+
+  } catch (error) {
+    // 4. ERROR STATE: Handle network or API failures
+    resultsContainer.innerHTML = "";
+    statusElement.textContent = "Something went wrong. Please check your network and try again.";
+  }
+}
